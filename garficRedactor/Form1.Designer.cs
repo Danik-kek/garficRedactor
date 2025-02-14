@@ -22,15 +22,15 @@
             this.toolStripButtonLine = new System.Windows.Forms.ToolStripButton();
             this.toolStripButtonEllipse = new System.Windows.Forms.ToolStripButton();
             this.toolStripButtonEraser = new System.Windows.Forms.ToolStripButton(); // Ластик
+            this.toolStripButtonOpen = new System.Windows.Forms.ToolStripButton(); // Открыть файл
+            this.toolStripButtonSave = new System.Windows.Forms.ToolStripButton(); // Сохранить файл
             this.toolStripButtonGrid = new System.Windows.Forms.ToolStripButton(); // Сетка
-            this.toolStripButtonImport = new System.Windows.Forms.ToolStripButton(); // Импорт
-            this.toolStripButtonExport = new System.Windows.Forms.ToolStripButton(); // Экспорт
-            this.toolStripButtonColor = new System.Windows.Forms.ToolStripButton(); // Выбор цвета
-            this.toolStripButton1 = new System.Windows.Forms.ToolStripButton(); // Открыть Paint
+            this.toolStripButtonPaint = new System.Windows.Forms.ToolStripButton(); // Открыть Paint
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
             this.drawingPanel = new garficRedactor.DoubleBufferedPanel();
             this.toolStrip2 = new System.Windows.Forms.ToolStrip();
+            this.toolStripButtonColor = new System.Windows.Forms.ToolStripButton(); // Выбор цвета
             this.trackBarZoom = new System.Windows.Forms.TrackBar(); // Масштабирование
 
             this.toolStrip1.SuspendLayout();
@@ -47,11 +47,10 @@
                 this.toolStripButtonLine,
                 this.toolStripButtonEllipse,
                 this.toolStripButtonEraser,
+                this.toolStripButtonOpen,
+                this.toolStripButtonSave,
                 this.toolStripButtonGrid,
-                this.toolStripButtonImport,
-                this.toolStripButtonExport,
-                this.toolStripButtonColor,
-                this.toolStripButton1});
+                this.toolStripButtonPaint});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Size = new System.Drawing.Size(800, 27);
@@ -99,50 +98,38 @@
             this.toolStripButtonEraser.Size = new System.Drawing.Size(29, 24);
             this.toolStripButtonEraser.Text = "Ластик";
 
+            // toolStripButtonOpen
+            this.toolStripButtonOpen.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripButtonOpen.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonOpen.Image"))); // Укажите путь к иконке открытия файла
+            this.toolStripButtonOpen.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButtonOpen.Name = "toolStripButtonOpen";
+            this.toolStripButtonOpen.Size = new System.Drawing.Size(29, 24);
+            this.toolStripButtonOpen.Text = "Открыть";
+            this.toolStripButtonOpen.Click += new System.EventHandler(this.toolStripButtonOpen_Click);
+
+            // toolStripButtonSave
+            this.toolStripButtonSave.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripButtonSave.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonSave.Image"))); // Укажите путь к иконке сохранения файла
+            this.toolStripButtonSave.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButtonSave.Name = "toolStripButtonSave";
+            this.toolStripButtonSave.Size = new System.Drawing.Size(29, 24);
+            this.toolStripButtonSave.Text = "Сохранить";
+            this.toolStripButtonSave.Click += new System.EventHandler(this.toolStripButtonSave_Click);
+
             // toolStripButtonGrid
             this.toolStripButtonGrid.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.toolStripButtonGrid.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonGrid.Image"))); // Укажите путь к иконке сетки
-            this.toolStripButtonGrid.CheckOnClick = true; // Позволяет кнопке быть "выбранной"
-            this.toolStripButtonGrid.Click += new System.EventHandler(this.toolStripButtonGrid_Click); // Привязка события
-            this.toolStripButtonGrid.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButtonGrid.Name = "toolStripButtonGrid";
-            this.toolStripButtonGrid.Size = new System.Drawing.Size(29, 24);
-            this.toolStripButtonGrid.Text = "Сетка";
+            this.toolStripButtonGrid.CheckOnClick = true;
+            this.toolStripButtonGrid.Click += new System.EventHandler(this.toolStripButtonGrid_Click);
 
-            // toolStripButtonImport
-            this.toolStripButtonImport.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripButtonImport.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonImport.Image"))); // Укажите путь к иконке импорта
-            this.toolStripButtonImport.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButtonImport.Name = "toolStripButtonImport";
-            this.toolStripButtonImport.Size = new System.Drawing.Size(29, 24);
-            this.toolStripButtonImport.Text = "Импорт";
-            this.toolStripButtonImport.Click += new System.EventHandler(this.toolStripButtonImport_Click); // Привязка события
-
-            // toolStripButtonExport
-            this.toolStripButtonExport.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripButtonExport.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonExport.Image"))); // Укажите путь к иконке экспорта
-            this.toolStripButtonExport.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButtonExport.Name = "toolStripButtonExport";
-            this.toolStripButtonExport.Size = new System.Drawing.Size(29, 24);
-            this.toolStripButtonExport.Text = "Экспорт";
-            this.toolStripButtonExport.Click += new System.EventHandler(this.toolStripButtonExport_Click); // Привязка события
-
-            // toolStripButtonColor
-            this.toolStripButtonColor.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonColor.Image"))); // Укажите путь к иконке выбора цвета
-            this.toolStripButtonColor.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButtonColor.Name = "toolStripButtonColor";
-            this.toolStripButtonColor.Size = new System.Drawing.Size(29, 24);
-            this.toolStripButtonColor.Text = "Цвет";
-            this.toolStripButtonColor.Click += new System.EventHandler(this.toolStripButtonColor_Click); // Привязка события
-
-            // toolStripButton1
-            this.toolStripButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripButton1.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButton1.Image"))); // Укажите путь к иконке Paint
-            this.toolStripButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButton1.Name = "toolStripButton1";
-            this.toolStripButton1.Size = new System.Drawing.Size(29, 24);
-            this.toolStripButton1.Text = "Открыть Paint";
-            this.toolStripButton1.Click += new System.EventHandler(this.toolStripButton1_Click); // Привязка события
+            // toolStripButtonPaint
+            this.toolStripButtonPaint.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripButtonPaint.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonPaint.Image"))); // Укажите путь к иконке Paint
+            this.toolStripButtonPaint.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButtonPaint.Name = "toolStripButtonPaint";
+            this.toolStripButtonPaint.Size = new System.Drawing.Size(29, 24);
+            this.toolStripButtonPaint.Text = "Открыть Paint";
+           
 
             // statusStrip1
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { this.toolStripStatusLabel1 });
@@ -168,12 +155,20 @@
             // toolStrip2
             this.toolStrip2.Dock = System.Windows.Forms.DockStyle.Right;
             this.toolStrip2.ImageScalingSize = new System.Drawing.Size(20, 20);
-            this.toolStrip2.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { this.toolStripButtonColor });
+            this.toolStrip2.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { this.toolStripButtonColor }); // Выбор цвета
             this.toolStrip2.Location = new System.Drawing.Point(656, 27);
             this.toolStrip2.Name = "toolStrip2";
             this.toolStrip2.Size = new System.Drawing.Size(144, 401);
             this.toolStrip2.TabIndex = 3;
             this.toolStrip2.Text = "toolStrip2";
+
+            // toolStripButtonColor
+            this.toolStripButtonColor.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonColor.Image"))); // Укажите путь к иконке выбора цвета
+            this.toolStripButtonColor.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButtonColor.Name = "toolStripButtonColor";
+            this.toolStripButtonColor.Size = new System.Drawing.Size(29, 24);
+            this.toolStripButtonColor.Text = "Цвет";
+            this.toolStripButtonColor.Click += new System.EventHandler(this.toolStripButtonColor_Click);
 
             // trackBarZoom
             this.trackBarZoom.Dock = System.Windows.Forms.DockStyle.Right;
@@ -182,8 +177,8 @@
             this.trackBarZoom.Value = 100; // Значение по умолчанию (100%)
             this.trackBarZoom.TickFrequency = 10;
             this.trackBarZoom.Orientation = System.Windows.Forms.Orientation.Vertical;
-            this.trackBarZoom.ValueChanged += new System.EventHandler(this.trackBarZoom_Scroll); // Привязка события
-            this.Controls.Add(this.trackBarZoom); // Добавляем TrackBar на форму
+            this.trackBarZoom.ValueChanged += new System.EventHandler(this.trackBarZoom_Scroll);
+            this.Controls.Add(this.trackBarZoom);
 
             // Form1
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
@@ -195,6 +190,7 @@
             this.Controls.Add(this.toolStrip1);
             this.Name = "Form1";
             this.Text = "Графический редактор";
+
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             this.statusStrip1.ResumeLayout(false);
@@ -208,19 +204,19 @@
 
         private System.Windows.Forms.ToolStrip toolStrip1;
         private System.Windows.Forms.ToolStripButton toolStripButtonPen;
-        private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripButton toolStripButtonText;
         private System.Windows.Forms.ToolStripButton toolStripButtonLine;
         private System.Windows.Forms.ToolStripButton toolStripButtonEllipse;
         private System.Windows.Forms.ToolStripButton toolStripButtonEraser; // Ластик
-        private System.Windows.Forms.ToolStripButton toolStripButtonGrid; // Сетка
-        private System.Windows.Forms.ToolStripButton toolStripButtonImport; // Импорт
-        private System.Windows.Forms.ToolStripButton toolStripButtonExport; // Экспорт
+        private System.Windows.Forms.ToolStripButton toolStripButtonOpen; // Открыть файл
+        private System.Windows.Forms.ToolStripButton toolStripButtonSave; // Сохранить файл
+        private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
-        private System.Windows.Forms.ToolStripButton toolStripButton1; // Открыть Paint
+        private System.Windows.Forms.ToolStripButton toolStripButtonPaint; // Открыть Paint
         private DoubleBufferedPanel drawingPanel;
         private System.Windows.Forms.ToolStrip toolStrip2;
         private System.Windows.Forms.ToolStripButton toolStripButtonColor; // Выбор цвета
+        private System.Windows.Forms.ToolStripButton toolStripButtonGrid; // Сетка
         private System.Windows.Forms.TrackBar trackBarZoom; // Масштабирование
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
@@ -22,13 +23,11 @@ namespace garficRedactor
         private Tools currentTool = Tools.NULL;
         private bool isDrawing = false;
         private Point startPoint;
-        private List<Shape> shapes = new List<Shape>(); // Исправлен тип
-        private List<Point> currentFreeLine = new List<Point>(); // Исправлен тип
         private Pen currentPen = new Pen(Color.Red);
+        private Bitmap workingImage = null; // Рабочее изображение
         private float zoomLevel = 1.0f; // Масштаб
         private int eraserSize = 10; // Размер ластика
         private bool isGridVisible = false; // Сетка
-        private Image backgroundImage = null; // Фоновое изображение
 
         public Form1()
         {
@@ -103,30 +102,66 @@ namespace garficRedactor
 
         private void toolStripButtonGrid_Click(object sender, EventArgs e)
         {
-            isGridVisible = toolStripButtonGrid.Checked; // Переключаем состояние сетки
-            drawingPanel.Invalidate(); // Перерисовываем панель
+            isGridVisible = toolStripButtonGrid.Checked;
+            drawingPanel.Invalidate();
         }
 
         private void trackBarZoom_Scroll(object sender, EventArgs e)
         {
-            zoomLevel = trackBarZoom.Value / 100.0f; // Обновляем масштаб
-            drawingPanel.Invalidate(); // Перерисовываем панель
+            zoomLevel = trackBarZoom.Value / 100.0f;
+            drawingPanel.Invalidate();
+        }
+
+        private void DrawingPanel_Paint(object sender, PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.ScaleTransform(zoomLevel, zoomLevel);
+
+            if (workingImage != null)
+            {
+                g.DrawImage(workingImage, Point.Empty);
+            }
+
+            DrawGrid(g);
+
+            if (isDrawing)
+            {
+                if (currentTool == Tools.LINE)
+                {
+                    Point currentPoint = GetScaledPoint(drawingPanel.PointToClient(Cursor.Position));
+                    using (Graphics imgG = Graphics.FromImage(workingImage))
+                    {
+                        imgG.DrawLine(currentPen, startPoint, currentPoint);
+                    }
+                    drawingPanel.Invalidate();
+                }
+                else if (currentTool == Tools.ELLIPSE)
+                {
+                    Point currentPoint = GetScaledPoint(drawingPanel.PointToClient(Cursor.Position));
+                    Rectangle rect = GetRectangleFromPoints(startPoint, currentPoint);
+                    using (Graphics imgG = Graphics.FromImage(workingImage))
+                    {
+                        imgG.DrawEllipse(currentPen, rect);
+                    }
+                    drawingPanel.Invalidate();
+                }
+            }
         }
 
         private void DrawingPanel_MouseDown(object sender, MouseEventArgs e)
         {
-            if (currentTool == Tools.LINE || currentTool == Tools.ELLIPSE || currentTool == Tools.PEN)
+            if (currentTool == Tools.LINE || currentTool == Tools.ELLIPSE || currentTool == Tools.PEN || currentTool == Tools.ERASER)
             {
                 isDrawing = true;
-                startPoint = GetScaledPoint(e.Location); // Преобразуем координаты с учетом масштаба
+                startPoint = GetScaledPoint(e.Location);
             }
             else if (currentTool == Tools.TEXT)
             {
                 string text = Prompt("Введите текст:", "Текст");
                 if (!string.IsNullOrEmpty(text))
                 {
-                    Text textObject = new Text(GetScaledPoint(e.Location), text, currentPen.Color); // Преобразуем координаты
-                    shapes.Add(textObject);
+                    AddText(GetScaledPoint(e.Location), text, currentPen.Color);
                     drawingPanel.Invalidate();
                 }
             }
@@ -138,22 +173,12 @@ namespace garficRedactor
             {
                 if (currentTool == Tools.PEN)
                 {
-                    AddPointToFreeLine(GetScaledPoint(e.Location)); // Преобразуем координаты
-                    drawingPanel.Invalidate();
-                }
-                else if (currentTool == Tools.LINE || currentTool == Tools.ELLIPSE)
-                {
+                    DrawFreeLine(GetScaledPoint(e.Location));
                     drawingPanel.Invalidate();
                 }
                 else if (currentTool == Tools.ERASER)
                 {
-                    Rectangle eraserArea = new Rectangle(
-                        GetScaledPoint(e.Location).X - eraserSize / 2,
-                        GetScaledPoint(e.Location).Y - eraserSize / 2,
-                        eraserSize,
-                        eraserSize
-                    );
-                    EraseShapes(eraserArea);
+                    EraseArea(GetScaledPoint(e.Location));
                     drawingPanel.Invalidate();
                 }
             }
@@ -163,82 +188,79 @@ namespace garficRedactor
         {
             if (isDrawing)
             {
-                if (currentTool == Tools.LINE)
+                isDrawing = false;
+                if (currentTool == Tools.LINE || currentTool == Tools.ELLIPSE)
                 {
-                    isDrawing = false;
-                    shapes.Add(new Line(startPoint, GetScaledPoint(e.Location), currentPen)); // Преобразуем координаты
+                    drawingPanel.Invalidate();
                 }
-                else if (currentTool == Tools.ELLIPSE)
-                {
-                    isDrawing = false;
-                    shapes.Add(new Ellipse(startPoint, GetScaledPoint(e.Location), currentPen)); // Преобразуем координаты
-                }
-                else if (currentTool == Tools.PEN)
-                {
-                    isDrawing = false;
-                    SaveFreeLine();
-                }
-                drawingPanel.Invalidate();
             }
         }
 
-        private void DrawingPanel_Paint(object sender, PaintEventArgs e)
+        private void toolStripButtonOpen_Click(object sender, EventArgs e)
         {
-            Graphics g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-
-            // Рисуем фоновое изображение
-            if (backgroundImage != null)
+            using (OpenFileDialog openFileDialog = new OpenFileDialog())
             {
-                g.DrawImage(backgroundImage, Point.Empty);
-            }
-
-            // Применяем масштабирование
-            g.ScaleTransform(zoomLevel, zoomLevel);
-
-            // Рисуем все фигуры
-            foreach (var shape in shapes)
-            {
-                shape.Draw(g);
-            }
-
-            // Рисуем сетку
-            DrawGrid(g);
-
-            // Отрисовка временных фигур
-            if (isDrawing)
-            {
-                if (currentTool == Tools.LINE)
+                openFileDialog.Filter = "Image Files (*.png;*.jpg;*.bmp)|*.png;*.jpg;*.bmp";
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    Point currentPoint = GetScaledPoint(drawingPanel.PointToClient(Cursor.Position)); // Преобразуем координаты
-                    g.DrawLine(currentPen, startPoint, currentPoint);
-                }
-                else if (currentTool == Tools.ELLIPSE)
-                {
-                    Point currentPoint = GetScaledPoint(drawingPanel.PointToClient(Cursor.Position)); // Преобразуем координаты
-                    Rectangle rect = GetRectangleFromPoints(startPoint, currentPoint);
-                    g.DrawEllipse(currentPen, rect);
-                }
-                else if (currentTool == Tools.PEN && currentFreeLine.Count > 1)
-                {
-                    for (int i = 0; i < currentFreeLine.Count - 1; i++)
+                    try
                     {
-                        g.DrawLine(currentPen, currentFreeLine[i], currentFreeLine[i + 1]);
+                        workingImage = new Bitmap(openFileDialog.FileName);
+                        drawingPanel.Size = workingImage.Size;
+                        drawingPanel.Invalidate();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Ошибка при открытии файла: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
-                else if (currentTool == Tools.ERASER)
+            }
+        }
+
+        private void toolStripButtonSave_Click(object sender, EventArgs e)
+        {
+            using (SaveFileDialog saveFileDialog = new SaveFileDialog())
+            {
+                saveFileDialog.Filter = "PNG Image|*.png|JPEG Image|*.jpg|Bitmap Image|*.bmp";
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    Point currentPoint = GetScaledPoint(drawingPanel.PointToClient(Cursor.Position)); // Преобразуем координаты
-                    Rectangle eraserArea = new Rectangle(
-                        currentPoint.X - eraserSize / 2,
-                        currentPoint.Y - eraserSize / 2,
-                        eraserSize,
-                        eraserSize
-                    );
-                    using (Pen eraserPen = new Pen(Color.Red, 1))
+                    try
                     {
-                        g.DrawRectangle(eraserPen, eraserArea);
+                        workingImage.Save(saveFileDialog.FileName, GetImageFormat(saveFileDialog.FileName));
                     }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Ошибка при сохранении файла: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
+        private ImageFormat GetImageFormat(string fileName)
+        {
+            if (fileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) return ImageFormat.Png;
+            if (fileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || fileName.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)) return ImageFormat.Jpeg;
+            if (fileName.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase)) return ImageFormat.Bmp;
+            return ImageFormat.Png; // По умолчанию PNG
+        }
+
+        private void DrawGrid(Graphics g)
+        {
+            if (isGridVisible)
+            {
+                int gridSize = 20;
+                Pen gridPen = new Pen(Color.LightGray, 1) { DashStyle = DashStyle.Dot };
+                int width = drawingPanel.ClientSize.Width;
+                int height = drawingPanel.ClientSize.Height;
+
+                for (int x = 0; x < width; x += gridSize)
+                {
+                    g.DrawLine(gridPen, x, 0, x, height);
+                }
+
+                for (int y = 0; y < height; y += gridSize)
+                {
+                    g.DrawLine(gridPen, 0, y, width, y);
                 }
             }
         }
@@ -251,76 +273,57 @@ namespace garficRedactor
             );
         }
 
-        private void AddPointToFreeLine(Point newPoint)
+        private void AddText(Point location, string text, Color color)
         {
-            if (currentFreeLine.Count > 0)
+            if (workingImage != null)
             {
-                Point lastPoint = currentFreeLine[currentFreeLine.Count - 1];
-                if (Distance(lastPoint, newPoint) > 1)
+                using (Graphics g = Graphics.FromImage(workingImage))
                 {
-                    AddIntermediatePoints(lastPoint, newPoint);
+                    using (Brush brush = new SolidBrush(color))
+                    {
+                        g.DrawString(text, new Font(FontFamily.GenericSansSerif, 12), brush, location);
+                    }
                 }
             }
-            currentFreeLine.Add(newPoint);
         }
 
-        private void AddIntermediatePoints(Point startPoint, Point endPoint)
+        private void DrawFreeLine(Point newPoint)
         {
-            int dx = Math.Abs(endPoint.X - startPoint.X);
-            int dy = Math.Abs(endPoint.Y - startPoint.Y);
-            int steps = Math.Max(dx, dy);
-            float xIncrement = (endPoint.X - startPoint.X) / (float)steps;
-            float yIncrement = (endPoint.Y - startPoint.Y) / (float)steps;
-
-            for (int i = 1; i < steps; i++)
+            if (workingImage != null && currentTool == Tools.PEN)
             {
-                float newX = startPoint.X + i * xIncrement;
-                float newY = startPoint.Y + i * yIncrement;
-                currentFreeLine.Add(new Point((int)newX, (int)newY));
+                using (Graphics g = Graphics.FromImage(workingImage))
+                {
+                    g.DrawLine(currentPen, startPoint, newPoint);
+                }
+                startPoint = newPoint;
             }
         }
 
-        private double Distance(Point point1, Point point2)
+        private void EraseArea(Point location)
         {
-            return Math.Sqrt(Math.Pow(point2.X - point1.X, 2) + Math.Pow(point2.Y - point1.Y, 2));
-        }
-
-        private void SaveFreeLine()
-        {
-            if (currentFreeLine.Count > 1)
+            if (workingImage != null && currentTool == Tools.ERASER)
             {
-                for (int i = 0; i < currentFreeLine.Count - 1; i++)
+                Rectangle eraserArea = new Rectangle(location.X - eraserSize / 2, location.Y - eraserSize / 2, eraserSize, eraserSize);
+                for (int x = eraserArea.X; x < eraserArea.X + eraserArea.Width; x++)
                 {
-                    shapes.Add(new Line(currentFreeLine[i], currentFreeLine[i + 1], currentPen));
+                    for (int y = eraserArea.Y; y < eraserArea.Y + eraserArea.Height; y++)
+                    {
+                        if (x >= 0 && x < workingImage.Width && y >= 0 && y < workingImage.Height)
+                        {
+                            workingImage.SetPixel(x, y, Color.FromArgb(0, workingImage.GetPixel(x, y))); // Устанавливаем альфа-компонент в 0
+                        }
+                    }
                 }
             }
-            currentFreeLine.Clear();
         }
 
-        internal static Rectangle GetRectangleFromPoints(Point start, Point end)
+        private static Rectangle GetRectangleFromPoints(Point start, Point end)
         {
             int x = Math.Min(start.X, end.X);
             int y = Math.Min(start.Y, end.Y);
             int width = Math.Abs(end.X - start.X);
             int height = Math.Abs(end.Y - start.Y);
             return new Rectangle(x, y, width, height);
-        }
-
-        private void EraseShapes(Rectangle eraserArea)
-        {
-            shapes.RemoveAll(shape =>
-            {
-                if (shape is Line line)
-                {
-                    Rectangle lineRect = new Rectangle(line.Start, new Size(line.End.X - line.Start.X, line.End.Y - line.Start.Y));
-                    return eraserArea.IntersectsWith(lineRect);
-                }
-                else if (shape is Ellipse ellipse)
-                {
-                    return eraserArea.IntersectsWith(ellipse.Bounds);
-                }
-                return false;
-            });
         }
 
         private string Prompt(string message, string caption)
@@ -341,134 +344,6 @@ namespace garficRedactor
             prompt.Controls.Add(confirmation);
             prompt.AcceptButton = confirmation;
             return prompt.ShowDialog() == DialogResult.OK ? textBox.Text : null;
-        }
-
-        private void DrawGrid(Graphics g)
-        {
-            if (isGridVisible)
-            {
-                int gridSize = 20; // Размер ячейки сетки
-                Pen gridPen = new Pen(Color.LightGray, 1) { DashStyle = DashStyle.Dot };
-
-                int width = drawingPanel.ClientSize.Width;
-                int height = drawingPanel.ClientSize.Height;
-
-                for (int x = 0; x < width; x += gridSize)
-                {
-                    g.DrawLine(gridPen, x, 0, x, height); // Вертикальные линии
-                }
-
-                for (int y = 0; y < height; y += gridSize)
-                {
-                    g.DrawLine(gridPen, 0, y, width, y); // Горизонтальные линии
-                }
-            }
-        }
-
-        private void toolStripButtonImport_Click(object sender, EventArgs e)
-        {
-            using (OpenFileDialog openFileDialog = new OpenFileDialog())
-            {
-                openFileDialog.Filter = "Image Files (*.png;*.jpg;*.bmp)|*.png;*.jpg;*.bmp";
-                if (openFileDialog.ShowDialog() == DialogResult.OK)
-                {
-                    try
-                    {
-                        backgroundImage = new Bitmap(openFileDialog.FileName); // Загружаем фон
-                        drawingPanel.Invalidate();
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Ошибка при импорте изображения: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
-            }
-        }
-
-        private void toolStripButtonExport_Click(object sender, EventArgs e)
-        {
-            using (SaveFileDialog saveFileDialog = new SaveFileDialog())
-            {
-                saveFileDialog.Filter = "PNG Image|*.png|JPEG Image|*.jpg|Bitmap Image|*.bmp";
-                if (saveFileDialog.ShowDialog() == DialogResult.OK)
-                {
-                    try
-                    {
-                        using (Bitmap bitmap = new Bitmap(drawingPanel.ClientSize.Width, drawingPanel.ClientSize.Height))
-                        {
-                            drawingPanel.DrawToBitmap(bitmap, drawingPanel.ClientRectangle);
-                            bitmap.Save(saveFileDialog.FileName);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Ошибка при экспорте изображения: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
-            }
-        }
-    }
-
-    public abstract class Shape
-    {
-        public abstract void Draw(Graphics g);
-    }
-
-    public class Line : Shape
-    {
-        public Point Start { get; }
-        public Point End { get; }
-        public Pen Pen { get; }
-
-        public Line(Point start, Point end, Pen pen)
-        {
-            Start = start;
-            End = end;
-            Pen = new Pen(pen.Color, pen.Width);
-        }
-
-        public override void Draw(Graphics g)
-        {
-            g.DrawLine(Pen, Start, End);
-        }
-    }
-
-    public class Ellipse : Shape
-    {
-        public Rectangle Bounds { get; }
-        public Pen Pen { get; }
-
-        public Ellipse(Point start, Point end, Pen pen)
-        {
-            Bounds = Form1.GetRectangleFromPoints(start, end);
-            Pen = new Pen(pen.Color, pen.Width);
-        }
-
-        public override void Draw(Graphics g)
-        {
-            g.DrawEllipse(Pen, Bounds);
-        }
-    }
-
-    public class Text : Shape
-    {
-        public Point Location { get; }
-        public string Content { get; }
-        public Color Color { get; }
-
-        public Text(Point location, string content, Color color)
-        {
-            Location = location;
-            Content = content;
-            Color = color;
-        }
-
-        public override void Draw(Graphics g)
-        {
-            using (Brush brush = new SolidBrush(Color))
-            {
-                g.DrawString(Content, new Font(FontFamily.GenericSansSerif, 12), brush, Location);
-            }
         }
     }
 
